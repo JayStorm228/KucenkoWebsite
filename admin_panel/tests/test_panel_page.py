@@ -1,5 +1,6 @@
 """Страница табличной панели и переключение тем."""
 
+import json
 import re
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from .conftest import DATA_URL, PANEL_URL, SAVE_URL
 BASE_DIR = Path(settings.BASE_DIR)
 ADMIN_SITE_CSS = BASE_DIR / "static" / "css" / "admin_site.css"
 PANEL_CSS = BASE_DIR / "static" / "admin_panel" / "css" / "panel.css"
+PANEL_JS = BASE_DIR / "static" / "admin_panel" / "js" / "panel.js"
 
 
 def css_rules(text: str):
@@ -58,6 +60,77 @@ class TestPanelPage:
         assert "vendor/tabulator/tabulator_midnight.min.css" in content
         assert "admin_panel/css/panel.css" in content
         assert "admin_panel/js/panel.js" in content
+
+    def test_both_grid_themes_are_linked_at_once(self, staff_client):
+        """Обе темы грида грузятся сразу, включена одна — через атрибут media.
+
+        Подмена href у <link> отключает старый стиль немедленно, а новый
+        приходит по сети позже: таблица остаётся без CSS, Tabulator измеряет
+        нулевую высоту и не рисует строки, хотя данные уже загружены.
+        """
+        content = staff_client.get(PANEL_URL).content.decode()
+        light = re.search(r'<link id="tabulator-theme-light".*?>', content, re.S)
+        dark = re.search(r'<link id="tabulator-theme-dark".*?>', content, re.S)
+        assert light is not None and dark is not None
+        assert 'media="all"' in light.group(0)
+        assert "tabulator_bootstrap5.min.css" in light.group(0)
+        assert 'media="print"' in dark.group(0)
+        assert "tabulator_midnight.min.css" in dark.group(0)
+
+    def test_grid_theme_is_chosen_before_tables_are_built(self, staff_client):
+        """Инлайн-скрипт выбора темы выполняется в head, до panel.js."""
+        content = staff_client.get(PANEL_URL).content.decode()
+        inline = content.index('getElementById("tabulator-theme-dark")')
+        assert inline < content.index("admin_panel/js/panel.js")
+        script = content[inline : content.index("</script>", inline)]
+        # Тёмная тема включается сразу, светлая отключается только после её
+        # загрузки: таблица ни на мгновение не остаётся без стилей.
+        assert 'dark.media = "all"' in script
+        assert "dark.sheet" in script
+
+    def test_theme_is_switched_by_media_not_by_href(self):
+        js = PANEL_JS.read_text(encoding="utf-8")
+        assert "themeLinks.light.media" in js
+        assert "themeLinks.dark.media" in js
+        assert 'setAttribute("href"' not in js
+
+    def test_tables_are_redrawn_after_data_and_styles_load(self):
+        js = PANEL_JS.read_text(encoding="utf-8")
+        assert "table.redraw(true)" in js  # после setData
+        assert 'addEventListener("load", redrawGrids)' in js  # стили тем и window.load
+
+    def test_rows_ship_with_the_page(self, staff_client, category, course):
+        """Записи из базы отдаются вместе со страницей, до запроса к API."""
+        content = staff_client.get(PANEL_URL).content.decode()
+        embedded = re.search(
+            r'<script id="panel-initial-data" type="application/json">(.*?)</script>',
+            content,
+            re.S,
+        )
+        assert embedded, "в странице нет блока с начальными данными"
+        data = json.loads(embedded.group(1))
+        assert [row["title"] for row in data["categories"]] == [category.title]
+        assert [row["title"] for row in data["courses"]] == [course.title]
+        assert data["courses"][0]["price"] == course.price
+        assert data["categories"][0]["courses_count"] == 1
+
+    def test_panel_js_reads_embedded_rows(self):
+        """Клиент берёт данные из страницы и лишь затем сверяется с базой."""
+        js = PANEL_JS.read_text(encoding="utf-8")
+        assert 'getElementById("panel-initial-data")' in js
+        assert "showEmbeddedData()" in js
+        # фоновая сверка не перетирает несохранённые правки и историю отмены
+        assert "state.touched || state.dirty || sameAsRendered" in js
+
+    def test_empty_render_is_retried_until_rows_appear(self):
+        """Пустой рендер повторяется, пока строки с данными не появятся."""
+        js = PANEL_JS.read_text(encoding="utf-8")
+        # заглушка «No Data» не считается отрисованной строкой
+        assert ".tabulator-row:not(.tabulator-placeholder)" in js
+        assert "ensureRowsRendered(name)" in js
+        assert "RENDER_RETRIES" in js
+        # перерисовка не вызывается до tableBuilt
+        assert "table.initialized" in js
 
     def test_vendored_files_exist(self):
         vendor = BASE_DIR / "static" / "vendor" / "tabulator"

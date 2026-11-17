@@ -3,17 +3,50 @@
 {% block title %}Таблицы данных | {{ site_title }}{% endblock %}
 {% block extrastyle %}
     {{ block.super }}
-    <link id="tabulator-theme"
+    {# Обе темы грида загружаются сразу, применяется только одна: переключение #}
+    {# атрибутом media мгновенно, а подмена href оставила бы таблицу без стилей #}
+    {# на время загрузки — Tabulator успел бы посчитать нулевую высоту и не #}
+    {# отрисовать строки. Неактивная тема грузится как media="print". #}
+    <link id="tabulator-theme-light"
           rel="stylesheet"
+          media="all"
           href="{% static 'vendor/tabulator/tabulator_bootstrap5.min.css' %}">
+    <link id="tabulator-theme-dark"
+          rel="stylesheet"
+          media="print"
+          href="{% static 'vendor/tabulator/tabulator_midnight.min.css' %}">
     <link rel="stylesheet" href="{% static 'admin_panel/css/panel.css' %}">
+    <script>
+        // Выбор темы грида до построения таблиц. admin/js/theme.js уже выставил
+        // html[data-theme] (авто, светлая или тёмная) из localStorage.
+        // Светлый файл остаётся включённым, пока тёмный не загрузился: тёмная
+        // тема идёт в документе позже и перекрывает светлую, поэтому таблица
+        // ни на мгновение не остаётся без стилей (иначе Tabulator измеряет
+        // нулевую высоту и не рисует строки).
+        (function () {
+            var mode = document.documentElement.getAttribute("data-theme") || "auto";
+            var prefersDark = window.matchMedia &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches;
+            if (mode !== "dark" && !(mode === "auto" && prefersDark)) {
+                return;
+            }
+            var light = document.getElementById("tabulator-theme-light");
+            var dark = document.getElementById("tabulator-theme-dark");
+            dark.media = "all";
+            if (dark.sheet) {
+                light.media = "print";
+            } else {
+                dark.addEventListener("load", function () {
+                    light.media = "print";
+                }, {once: true});
+            }
+        })();
+    </script>
 {% endblock %}
 {% block content %}
     <div id="panel-app"
          data-url-data="{% url 'admin_panel:data' %}"
-         data-url-save="{% url 'admin_panel:save' %}"
-         data-tabulator-light="{% static 'vendor/tabulator/tabulator_bootstrap5.min.css' %}"
-         data-tabulator-dark="{% static 'vendor/tabulator/tabulator_midnight.min.css' %}">
+         data-url-save="{% url 'admin_panel:save' %}">
         {% csrf_token %}
         <div id="panel-alerts"></div>
         <div class="panel-toolbar">
@@ -70,6 +103,9 @@
             </p>
         </div>
     </div>
+    {# Записи из базы уезжают в страницу сразу: таблицы заполняются с первым #}
+    {# кадром, не дожидаясь отдельного запроса к /admin/panel/api/data/. #}
+    {{ panel_data|json_script:"panel-initial-data" }}
 {% endblock %}
 {% block footer %}
     {{ block.super }}

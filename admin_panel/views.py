@@ -47,6 +47,9 @@ def panel(request):
         **admin.site.each_context(request),
         "title": "Таблицы данных",
         "subtitle": "Категории и курсы как в базе: правка и добавление на месте",
+        # Данные отдаются вместе со страницей (json_script), поэтому таблицы
+        # показывают записи из базы сразу, а не после отдельного запроса.
+        "panel_data": build_panel_data(),
     }
     return render(request, "admin_panel/panel.html", context)
 

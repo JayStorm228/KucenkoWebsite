@@ -8,9 +8,25 @@
     "use strict";
 
     var app = document.getElementById("panel-app");
-    if (!app || typeof Tabulator === "undefined") {
+    if (!app) {
         return;
     }
+    if (typeof Tabulator === "undefined") {
+        // Без библиотеки таблицы остались бы пустыми без объяснения причины.
+        app.insertAdjacentHTML(
+            "afterbegin",
+            "<div class='alert alert-danger' role='alert'>Не загрузилась библиотека таблиц " +
+                "(static/vendor/tabulator/tabulator.min.js). Проверьте, что сервер отдаёт " +
+                "статические файлы.</div>"
+        );
+        return;
+    }
+
+    // Стили тем грида: оба файла в странице, включён ровно один (атрибут media).
+    var themeLinks = {
+        light: document.getElementById("tabulator-theme-light"),
+        dark: document.getElementById("tabulator-theme-dark")
+    };
 
     /* -------------------------------------------------------------- *
      * Разделы панели: колонки, значения по умолчанию, валидация        *
@@ -139,7 +155,9 @@
         dirty: false,
         saving: false,
         lastSection: null, // где было последнее действие — туда и «Отменить шаг»
-        actions: 0 // сколько действий можно отменить до ближайшей загрузки данных
+        actions: 0, // сколько действий можно отменить до ближайшей загрузки данных
+        touched: false, // пользователь уже правил таблицы после последней загрузки
+        filling: false // таблицы заполняются целиком (начальная загрузка)
     };
 
     function emptyChanges() {
@@ -388,8 +406,27 @@
         state.categories = categories;
 
         // Названия категорий показаны форматером — перерисовываем курсы.
-        state.grids.courses.getRows().forEach(function (row) {
-            row.reformat();
+        // При начальном заполнении это лишнее: курсы заполнятся следом и возьмут
+        // свежий список сами.
+        var courses = state.grids.courses;
+        if (!state.filling && courses && courses._built) {
+            courses._built.then(function () {
+                courses.getRows().forEach(function (row) {
+                    row.reformat();
+                });
+            });
+        }
+    }
+
+    /** Заполнить таблицы по порядку: сначала категории, потом курсы. */
+    function fillSections(getRows) {
+        state.filling = true;
+        return SECTION_ORDER.reduce(function (chain, name) {
+            return chain.then(function () {
+                return setData(name, getRows(name));
+            });
+        }, Promise.resolve()).then(function () {
+            state.filling = false;
         });
     }
 
@@ -452,6 +489,7 @@
 
         state.lastSection = name;
         state.actions += 1;
+        state.touched = true;
         // Правка прошла валидацию таблицы — снимаем отметку об ошибке.
         clearCellError(cell);
         if (isTempRow(data)) {
@@ -563,6 +601,7 @@
         }
         state.lastSection = name;
         state.actions += 1;
+        state.touched = true;
         table.deleteRow(row);
         rebuildChanges();
         showAlert("warning", "Строка помечена к удалению — изменения применятся после сохранения.");
@@ -588,6 +627,7 @@
         table.addRow(data, true);
         state.lastSection = name;
         state.actions += 1;
+        state.touched = true;
 
         var added = null;
         table.getRows().forEach(function (candidate) {
@@ -619,7 +659,7 @@
         var table = new Tabulator("#" + section.element, {
             data: [],
             layout: "fitDataStretch",
-            height: "420px",
+            maxHeight: 600,
             placeholder: "Нет записей — добавьте первую",
             selectableRows: 1,
             history: true,
@@ -632,8 +672,45 @@
             columns: section.columns
         });
         table._nextTempId = -1;
+        // Методы заполнения и перерисовки работают только после tableBuilt:
+        // до него внутренние структуры таблицы (в том числе рендерер строк)
+        // ещё не созданы, и вызов setData() падает, оставляя таблицу пустой.
+        table._built = new Promise(function (resolve) {
+            table.on("tableBuilt", resolve);
+        });
         state.grids[name] = table;
         return table;
+    }
+
+    /* Строки должны появиться сразу вместе с данными. Если таблица измерила
+     * нулевую высоту (стили, шрифты или размеры контейнера ещё не готовы),
+     * виртуальный рендер не рисует ничего, хотя данные уже загружены — тогда
+     * перерисовку повторяем, пока строки не появятся. */
+    var RENDER_RETRIES = 6;
+    var RENDER_RETRY_DELAY = 120;
+
+    /** Сколько строк с данными реально отрисовано в таблице. */
+    function renderedRows(table) {
+        if (!table || !table.element) {
+            return 0;
+        }
+        // Строка-заглушка «No Data» тоже имеет класс tabulator-row.
+        return table.element.querySelectorAll(".tabulator-row:not(.tabulator-placeholder)").length;
+    }
+
+    function ensureRowsRendered(name, attempt) {
+        var table = state.grids[name];
+        var tries = attempt || 0;
+        if (!table || !table.initialized || tries >= RENDER_RETRIES) {
+            return;
+        }
+        if (renderedRows(table) > 0 || table.getDataCount() === 0) {
+            return;
+        }
+        window.setTimeout(function () {
+            table.redraw(true);
+            ensureRowsRendered(name, tries + 1);
+        }, RENDER_RETRY_DELAY * (tries + 1));
     }
 
     function setData(name, rows) {
@@ -646,16 +723,26 @@
         });
         state.changes[name] = emptyChanges();
         state.actions = 0;
+        state.touched = false;
         state.lastSection = null;
-        table.setData(source).then(function () {
+        var done = table._built.then(function () {
+            return table.setData(source);
+        }).then(function () {
+            // Перерисовка после заполнения: к этому моменту стили и шрифты
+            // уже применены, и строки получают настоящую высоту.
+            table.redraw(true);
+            ensureRowsRendered(name);
             table.getRows().forEach(function (row) {
                 refreshRowState(name, row);
             });
+            // Список категорий строится из данных таблицы, поэтому обновляем
+            // его уже после заполнения, а не до.
+            if (name === "categories") {
+                refreshCategories();
+            }
             updateCounts();
         });
-        if (name === "categories") {
-            refreshCategories();
-        }
+        return done;
     }
 
     function updateCounts() {
@@ -812,7 +899,48 @@
         });
     }
 
-    function loadData() {
+    /**
+     * Запись данных, отданная страницей сразу (json_script в шаблоне).
+     * С ней таблицы заполняются с первым кадром, без ожидания запроса к API.
+     */
+    function readEmbeddedData() {
+        var node = document.getElementById("panel-initial-data");
+        if (!node) {
+            return null;
+        }
+        try {
+            var parsed = JSON.parse(node.textContent);
+            return parsed && typeof parsed === "object" ? parsed : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    /** Совпадают ли свежие данные с уже показанными (чтобы не дёргать таблицы). */
+    function sameAsRendered(data) {
+        return SECTION_ORDER.every(function (name) {
+            return JSON.stringify(data[name] || []) === JSON.stringify(state.saved[name] || []);
+        });
+    }
+
+    function showEmbeddedData() {
+        var embedded = readEmbeddedData();
+        if (!embedded) {
+            return null;
+        }
+        return fillSections(function (name) {
+            return embedded[name];
+        });
+    }
+
+    /**
+     * Запрос данных к API.
+     * @param {object} options ifFresh — не трогать таблицы, пока показанные
+     *     данные актуальны или пользователь уже начал править; quiet — не
+     *     показывать ошибку как блокирующую (данные на экране уже есть).
+     */
+    function loadData(options) {
+        var settings = options || {};
         return request(app.dataset.urlData, {headers: {"X-Requested-With": "XMLHttpRequest"}})
             .then(function (response) {
                 if (!response.ok || !response.body || !response.body.ok) {
@@ -820,12 +948,23 @@
                         (response.body && response.body.detail) || "Не удалось загрузить данные"
                     );
                 }
-                SECTION_ORDER.forEach(function (name) {
-                    setData(name, response.body.data[name]);
-                });
-                updateToolbar();
+                // Фоновая сверка не должна перетирать историю правок: применяем
+                // её, только пока пользователь ничего не сделал и данные изменились.
+                if (
+                    settings.ifFresh &&
+                    (state.touched || state.dirty || sameAsRendered(response.body.data))
+                ) {
+                    return;
+                }
+                return fillSections(function (name) {
+                    return response.body.data[name];
+                }).then(updateToolbar);
             })
             .catch(function (error) {
+                if (settings.quiet) {
+                    showAlert("warning", "Не удалось проверить обновления данных: " + error.message);
+                    return;
+                }
                 showAlert("error", error.message);
             });
     }
@@ -906,6 +1045,7 @@
             return;
         }
         var table = state.grids[name];
+        state.touched = true;
         if (table && table.undo()) {
             state.actions -= 1;
         } else {
@@ -918,6 +1058,10 @@
      * Темы: грид переключается вместе с админкой                        *
      * -------------------------------------------------------------- */
 
+    // Текущая тема; совпадает с фактической при старте, чтобы первый вызов
+    // applyGridTheme() (до построения таблиц) не дёргал redraw().
+    var appliedDark = effectiveDark();
+
     function effectiveDark() {
         var theme = document.documentElement.getAttribute("data-theme") || "auto";
         if (theme === "dark") {
@@ -929,23 +1073,61 @@
         return Boolean(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
     }
 
+    /** Перерисовать таблицы: стили или размеры могли измениться. */
+    function redrawGrids() {
+        SECTION_ORDER.forEach(function (name) {
+            var table = state.grids[name];
+            // До tableBuilt вызов redraw() бессмысленен и ломает сборку таблицы.
+            if (table && table._built) {
+                table._built.then(function () {
+                    if (!table.initialized) {
+                        return;
+                    }
+                    table.redraw(true);
+                    ensureRowsRendered(name);
+                });
+            }
+        });
+    }
+
     function applyGridTheme() {
-        var link = document.getElementById("tabulator-theme");
-        if (!link) {
+        if (!themeLinks.light || !themeLinks.dark) {
             return;
         }
+        var dark = effectiveDark();
         // Bootstrap-компоненты панели (карточки, кнопки, бейджи, алерты)
         // переключаются своим атрибутом, на остальную админку он не влияет.
-        app.setAttribute("data-bs-theme", effectiveDark() ? "dark" : "light");
-        var target = effectiveDark() ? app.dataset.tabulatorDark : app.dataset.tabulatorLight;
-        if (link.getAttribute("href") !== target) {
-            link.setAttribute("href", target);
-            SECTION_ORDER.forEach(function (name) {
-                var table = state.grids[name];
-                if (table) {
-                    table.redraw(true);
-                }
-            });
+        app.setAttribute("data-bs-theme", dark ? "dark" : "light");
+
+        // Оба файла тем уже в странице, переключение атрибутом media мгновенное.
+        // Подмена href так не работает: старый стиль отключается сразу, новый
+        // приходит по сети позже, и таблица остаётся без CSS — в этот момент
+        // Tabulator измеряет нулевую высоту и не рисует строки, хотя данные
+        // уже загружены.
+        if (!dark) {
+            themeLinks.dark.media = "print";
+            themeLinks.light.media = "all";
+        } else {
+            // Тёмная тема подключена позже светлой и перекрывает её, поэтому
+            // светлую отключаем только когда тёмная точно загружена (link.sheet).
+            themeLinks.dark.media = "all";
+            if (themeLinks.dark.sheet) {
+                themeLinks.light.media = "print";
+            } else {
+                themeLinks.dark.addEventListener(
+                    "load",
+                    function () {
+                        themeLinks.light.media = "print";
+                        redrawGrids();
+                    },
+                    {once: true}
+                );
+            }
+        }
+
+        if (appliedDark !== dark) {
+            appliedDark = dark;
+            redrawGrids();
         }
     }
 
@@ -987,6 +1169,14 @@
     });
 
     applyGridTheme();
+    // Если тема доехала по сети позже таблиц — перерисовываем по факту загрузки.
+    [themeLinks.light, themeLinks.dark].forEach(function (link) {
+        if (link) {
+            link.addEventListener("load", redrawGrids);
+        }
+    });
+    // То же на случай шрифтов и прочих ресурсов, догрузившихся после таблиц.
+    window.addEventListener("load", redrawGrids);
     new MutationObserver(applyGridTheme).observe(document.documentElement, {
         attributes: true,
         attributeFilter: ["data-theme"]
@@ -995,6 +1185,17 @@
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyGridTheme);
     }
 
-    loadData();
+    // Сначала показываем записи, которые пришли вместе со страницей, затем
+    // фоном сверяемся с базой: если там что-то изменилось и правок ещё нет,
+    // таблицы обновятся сами.
+    var shown = showEmbeddedData();
+    if (shown) {
+        shown.then(function () {
+            updateToolbar();
+            loadData({ifFresh: true, quiet: true});
+        });
+    } else {
+        loadData();
+    }
     updateToolbar();
 })();
