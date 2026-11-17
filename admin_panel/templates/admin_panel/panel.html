@@ -1,0 +1,78 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block title %}Таблицы данных | {{ site_title }}{% endblock %}
+{% block extrastyle %}
+    {{ block.super }}
+    <link id="tabulator-theme"
+          rel="stylesheet"
+          href="{% static 'vendor/tabulator/tabulator_bootstrap5.min.css' %}">
+    <link rel="stylesheet" href="{% static 'admin_panel/css/panel.css' %}">
+{% endblock %}
+{% block content %}
+    <div id="panel-app"
+         data-url-data="{% url 'admin_panel:data' %}"
+         data-url-save="{% url 'admin_panel:save' %}"
+         data-tabulator-light="{% static 'vendor/tabulator/tabulator_bootstrap5.min.css' %}"
+         data-tabulator-dark="{% static 'vendor/tabulator/tabulator_midnight.min.css' %}">
+        {% csrf_token %}
+        <div id="panel-alerts"></div>
+        <div class="panel-toolbar">
+            <span id="panel-changes-count" class="badge text-bg-secondary">Нет несохранённых изменений</span>
+            <div class="panel-toolbar-actions">
+                <button type="button"
+                        id="panel-undo"
+                        class="btn btn-sm btn-outline-secondary"
+                        title="Отменить последнее действие в таблице (Ctrl+Z)">Отменить шаг</button>
+                <button type="button"
+                        id="panel-reload"
+                        class="btn btn-sm btn-outline-secondary"
+                        title="Вернуть таблицы к сохранённому состоянию">Отменить изменения</button>
+                <button type="button" id="panel-save" class="btn btn-sm btn-primary" disabled>Сохранить</button>
+            </div>
+        </div>
+        <div class="card panel-card">
+            <div class="card-header panel-card-header">
+                <span class="panel-card-title">
+                    Категории
+                    <span id="categories-count" class="panel-card-count"></span>
+                </span>
+                <button type="button"
+                        id="add-category"
+                        class="btn btn-sm btn-outline-primary">+ Добавить категорию</button>
+            </div>
+            <div class="card-body">
+                <div id="categories-grid" class="panel-grid" data-section="categories"></div>
+            </div>
+        </div>
+        <div class="card panel-card">
+            <div class="card-header panel-card-header">
+                <span class="panel-card-title">
+                    Курсы
+                    <span id="courses-count" class="panel-card-count"></span>
+                </span>
+                <button type="button" id="add-course" class="btn btn-sm btn-outline-primary">+ Добавить курс</button>
+            </div>
+            <div class="card-body">
+                <div id="courses-grid" class="panel-grid" data-section="courses"></div>
+            </div>
+        </div>
+        <div class="panel-hint">
+            <p>
+                Правки накапливаются в таблицах и уходят одним пакетом по кнопке
+                <strong>Сохранить</strong>: если хотя бы одна строка не пройдёт проверку,
+                не сохранится ничего, а проблемные ячейки подсветятся.
+            </p>
+            <p>
+                Колонки <code>id</code> и <code>created_at</code> доступны только для чтения.
+                Удаление категории вместе с ней удаляет её курсы — панель спросит подтверждение.
+                В отличие от публичного API v1, заголовки здесь сохраняются как введены
+                (без автоматической капитализации), а <code>reviews_qty</code> виден и редактируем.
+            </p>
+        </div>
+    </div>
+{% endblock %}
+{% block footer %}
+    {{ block.super }}
+    <script src="{% static 'vendor/tabulator/tabulator.min.js' %}"></script>
+    <script src="{% static 'admin_panel/js/panel.js' %}"></script>
+{% endblock %}

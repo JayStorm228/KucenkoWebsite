@@ -4,82 +4,332 @@
  * кнопки и поля как btn-primary / form-control).
  *
  * Палитра админки Django задаётся CSS-переменными, поэтому большая часть
- * переоформления — это переопределение переменных в :root. Значения совпадают
+ * переоформления — это переопределение переменных. Значения совпадают
  * с переменными Bootstrap 5.3 (--bs-primary, --bs-dark, --bs-border-color и т. д.).
  *
  * Файл подключается последним (см. templates/admin/base_site.html), поэтому его
- * правила имеют приоритет над base.css, forms.css, changelists.css и responsive.css.
+ * правила имеют приоритет над base.css, forms.css, dark_mode.css, changelists.css
+ * и responsive.css.
+ *
+ * ТЁМНАЯ И СВЕТЛАЯ ТЕМЫ. Штатный переключатель Django (кнопка в шапке) пишет
+ * html[data-theme] = auto | light | dark и хранит выбор в localStorage, а
+ * admin/js/theme.js применяет его до отрисовки. Селекторы ниже повторяют
+ * селекторы Django, иначе наша палитра перекрыла бы тёмную:
+ *   html[data-theme="light"], :root   — светлая (как в base.css);
+ *   html:not([data-theme="light"])    — тёмная в режиме auto при тёмной теме ОС;
+ *   html[data-theme="dark"]           — тёмная при явном выборе.
+ * Все цвета сайта задаются токенами --admin-*, поэтому тёмная палитра —
+ * это один блок значений, а правила ниже тем не касаются.
  */
 
+/* ------------------------------------------------------------------------
+   Светлая палитра (по умолчанию)
+   ------------------------------------------------------------------------ */
+
+html[data-theme="light"],
 :root {
-    /* Основные цвета Bootstrap */
-    --admin-blue: #0d6efd;
-    --admin-blue-hover: #0b5ed7;
-    --admin-dark: #212529;
-    --admin-gray: #6c757d;
-    --admin-light: #f8f9fa;
-    --admin-border: #dee2e6;
-    --admin-input-border: #ced4da;
+    /* Токены компонентов */
+    --admin-primary: #0d6efd;
+    --admin-primary-hover: #0b5ed7;
+    --admin-accent: #ffc107;
     --admin-danger: #dc3545;
     --admin-danger-hover: #bb2d3b;
 
+    --admin-text: #212529;
+    --admin-text-medium: #495057;
+    --admin-text-muted: #6c757d;
+
+    --admin-bg: #ffffff;
+    --admin-surface: #f8f9fa;
+    --admin-border: #dee2e6;
+    --admin-input-border: #ced4da;
+
+    --admin-focus-border: #86b7fe;
+    --admin-focus-ring: rgb(13 110 253 / 25%);
+
+    --admin-link-hover: #0a58ca;
+    --admin-link-selected: #212529;
+
+    --admin-table-head-bg: #212529;
+    --admin-table-head-fg: #ffffff;
+    --admin-table-stripe: rgb(0 0 0 / 3%);
+    --admin-row-hover: rgb(13 110 253 / 8%);
+
+    --admin-message-success-bg: #d1e7dd;
+    --admin-message-success-border: #badbcc;
+    --admin-message-success-fg: #0f5132;
+    --admin-message-error-bg: #f8d7da;
+    --admin-message-error-border: #f5c2c7;
+    --admin-message-error-fg: #842029;
+    --admin-message-warning-bg: #fff3cd;
+    --admin-message-warning-border: #ffecb5;
+    --admin-message-warning-fg: #664d03;
+    --admin-message-info-bg: #cff4fc;
+    --admin-message-info-border: #b6effb;
+    --admin-message-info-fg: #055160;
+    --admin-message-debug-bg: #e2e3e5;
+
     /* Палитра админки Django -> палитра Bootstrap */
-    --primary: var(--admin-blue);
-    --secondary: var(--admin-dark);
-    --accent: #ffc107;
+    --primary: var(--admin-primary);
+    --secondary: var(--admin-table-head-bg);
+    --accent: var(--admin-accent);
     --primary-fg: #fff;
 
-    --body-fg: var(--admin-dark);
-    --body-bg: #fff;
-    --body-quiet-color: var(--admin-gray);
-    --body-medium-color: #495057;
-    --body-loud-color: var(--admin-dark);
+    --body-fg: var(--admin-text);
+    --body-bg: var(--admin-bg);
+    --body-quiet-color: var(--admin-text-muted);
+    --body-medium-color: var(--admin-text-medium);
+    --body-loud-color: var(--admin-text);
 
-    --header-color: var(--admin-dark);
-    --header-branding-color: var(--admin-dark);
-    --header-bg: #fff;
-    --header-link-color: var(--admin-blue);
+    --header-color: var(--admin-text);
+    --header-branding-color: var(--admin-text);
+    --header-bg: var(--admin-bg);
+    --header-link-color: var(--admin-primary);
 
-    --breadcrumbs-fg: var(--admin-gray);
-    --breadcrumbs-link-fg: var(--admin-blue);
-    --breadcrumbs-bg: var(--admin-light);
+    --breadcrumbs-fg: var(--admin-text-muted);
+    --breadcrumbs-link-fg: var(--admin-primary);
+    --breadcrumbs-bg: var(--admin-surface);
 
-    --link-fg: var(--admin-blue);
-    --link-hover-color: #0a58ca;
-    --link-selected-fg: var(--admin-dark);
+    --link-fg: var(--admin-primary);
+    --link-hover-color: var(--admin-link-hover);
+    --link-selected-fg: var(--admin-link-selected);
 
     --hairline-color: var(--admin-border);
     --border-color: var(--admin-border);
 
     --error-fg: var(--admin-danger);
 
-    --message-debug-bg: #e2e3e5;
-    --message-info-bg: #cff4fc;
-    --message-success-bg: #d1e7dd;
-    --message-warning-bg: #fff3cd;
-    --message-error-bg: #f8d7da;
+    --message-debug-bg: var(--admin-message-debug-bg);
+    --message-info-bg: var(--admin-message-info-bg);
+    --message-success-bg: var(--admin-message-success-bg);
+    --message-warning-bg: var(--admin-message-warning-bg);
+    --message-error-bg: var(--admin-message-error-bg);
 
-    --darkened-bg: var(--admin-light);
+    --darkened-bg: var(--admin-surface);
     --selected-bg: #e9ecef;
-    --selected-row: #fff3cd;
+    --selected-row: var(--admin-message-warning-bg);
 
     --button-fg: #fff;
-    --button-bg: var(--admin-blue);
-    --button-hover-bg: var(--admin-blue-hover);
-    --default-button-bg: var(--admin-blue);
-    --default-button-hover-bg: var(--admin-blue-hover);
-    --close-button-bg: var(--admin-gray);
+    --button-bg: var(--admin-primary);
+    --button-hover-bg: var(--admin-primary-hover);
+    --default-button-bg: var(--admin-primary);
+    --default-button-hover-bg: var(--admin-primary-hover);
+    --close-button-bg: var(--admin-text-muted);
     --close-button-hover-bg: #565e64;
     --delete-button-bg: var(--admin-danger);
     --delete-button-hover-bg: var(--admin-danger-hover);
 
     --object-tools-fg: #fff;
-    --object-tools-bg: var(--admin-blue);
-    --object-tools-hover-bg: var(--admin-blue-hover);
+    --object-tools-bg: var(--admin-primary);
+    --object-tools-hover-bg: var(--admin-primary-hover);
 
     --font-family-primary: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
         "Noto Sans", "Liberation Sans", Arial, sans-serif;
 }
+
+/* ------------------------------------------------------------------------
+   Тёмная палитра: режим auto при тёмной теме операционной системы
+   ------------------------------------------------------------------------ */
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme="light"]) {
+        --admin-primary: #4a9eff;
+        --admin-primary-hover: #7db8ff;
+        --admin-accent: #ffda6a;
+        --admin-danger: #ea868f;
+        --admin-danger-hover: #f1aeb5;
+
+        --admin-text: #e9ecef;
+        --admin-text-medium: #ced4da;
+        --admin-text-muted: #adb5bd;
+
+        --admin-bg: #1a1d21;
+        --admin-surface: #22262a;
+        --admin-border: #343a40;
+        --admin-input-border: #495057;
+
+        --admin-focus-border: #4a9eff;
+        --admin-focus-ring: rgb(74 158 255 / 35%);
+
+        --admin-link-hover: #7db8ff;
+        --admin-link-selected: #9ec5fe;
+
+        --admin-table-head-bg: #0f1113;
+        --admin-table-head-fg: #e9ecef;
+        --admin-table-stripe: rgb(255 255 255 / 4%);
+        --admin-row-hover: rgb(74 158 255 / 16%);
+
+        --admin-message-success-bg: #113a22;
+        --admin-message-success-border: #1c5c36;
+        --admin-message-success-fg: #a3cfbb;
+        --admin-message-error-bg: #4a1d22;
+        --admin-message-error-border: #7a2c33;
+        --admin-message-error-fg: #f1aeb5;
+        --admin-message-warning-bg: #4a3b12;
+        --admin-message-warning-border: #7a6220;
+        --admin-message-warning-fg: #ffda6a;
+        --admin-message-info-bg: #123a52;
+        --admin-message-info-border: #1d5a80;
+        --admin-message-info-fg: #9ec5fe;
+        --admin-message-debug-bg: #2b3035;
+
+        --primary: var(--admin-primary);
+        --secondary: var(--admin-table-head-bg);
+        --accent: var(--admin-accent);
+        --primary-fg: #121212;
+
+        --body-fg: var(--admin-text);
+        --body-bg: #121212;
+        --body-quiet-color: var(--admin-text-muted);
+        --body-medium-color: var(--admin-text-medium);
+        --body-loud-color: #ffffff;
+
+        --header-color: var(--admin-text);
+        --header-branding-color: var(--admin-text);
+        --header-bg: var(--admin-bg);
+        --header-link-color: var(--admin-primary);
+
+        --breadcrumbs-fg: var(--admin-text-muted);
+        --breadcrumbs-link-fg: var(--admin-primary);
+        --breadcrumbs-bg: var(--admin-surface);
+
+        --link-fg: var(--admin-primary);
+        --link-hover-color: var(--admin-link-hover);
+        --link-selected-fg: var(--admin-link-selected);
+
+        --hairline-color: var(--admin-border);
+        --border-color: var(--admin-border);
+
+        --error-fg: var(--admin-danger);
+
+        --message-debug-bg: var(--admin-message-debug-bg);
+        --message-info-bg: var(--admin-message-info-bg);
+        --message-success-bg: var(--admin-message-success-bg);
+        --message-warning-bg: var(--admin-message-warning-bg);
+        --message-error-bg: var(--admin-message-error-bg);
+
+        --darkened-bg: var(--admin-surface);
+        --selected-bg: #2b3035;
+        --selected-row: var(--admin-message-warning-bg);
+
+        --button-fg: #121212;
+        --button-bg: var(--admin-primary);
+        --button-hover-bg: var(--admin-primary-hover);
+        --default-button-bg: var(--admin-primary);
+        --default-button-hover-bg: var(--admin-primary-hover);
+        --close-button-bg: #343a40;
+        --close-button-hover-bg: #6c757d;
+        --delete-button-bg: var(--admin-danger);
+        --delete-button-hover-bg: var(--admin-danger-hover);
+
+        --object-tools-fg: #121212;
+        --object-tools-bg: var(--admin-primary);
+        --object-tools-hover-bg: var(--admin-primary-hover);
+    }
+}
+
+/* ------------------------------------------------------------------------
+   Тёмная палитра: явный выбор тёмной темы переключателем
+   ------------------------------------------------------------------------ */
+
+html[data-theme="dark"] {
+    --admin-primary: #4a9eff;
+    --admin-primary-hover: #7db8ff;
+    --admin-accent: #ffda6a;
+    --admin-danger: #ea868f;
+    --admin-danger-hover: #f1aeb5;
+
+    --admin-text: #e9ecef;
+    --admin-text-medium: #ced4da;
+    --admin-text-muted: #adb5bd;
+
+    --admin-bg: #1a1d21;
+    --admin-surface: #22262a;
+    --admin-border: #343a40;
+    --admin-input-border: #495057;
+
+    --admin-focus-border: #4a9eff;
+    --admin-focus-ring: rgb(74 158 255 / 35%);
+
+    --admin-link-hover: #7db8ff;
+    --admin-link-selected: #9ec5fe;
+
+    --admin-table-head-bg: #0f1113;
+    --admin-table-head-fg: #e9ecef;
+    --admin-table-stripe: rgb(255 255 255 / 4%);
+    --admin-row-hover: rgb(74 158 255 / 16%);
+
+    --admin-message-success-bg: #113a22;
+    --admin-message-success-border: #1c5c36;
+    --admin-message-success-fg: #a3cfbb;
+    --admin-message-error-bg: #4a1d22;
+    --admin-message-error-border: #7a2c33;
+    --admin-message-error-fg: #f1aeb5;
+    --admin-message-warning-bg: #4a3b12;
+    --admin-message-warning-border: #7a6220;
+    --admin-message-warning-fg: #ffda6a;
+    --admin-message-info-bg: #123a52;
+    --admin-message-info-border: #1d5a80;
+    --admin-message-info-fg: #9ec5fe;
+    --admin-message-debug-bg: #2b3035;
+
+    --primary: var(--admin-primary);
+    --secondary: var(--admin-table-head-bg);
+    --accent: var(--admin-accent);
+    --primary-fg: #121212;
+
+    --body-fg: var(--admin-text);
+    --body-bg: #121212;
+    --body-quiet-color: var(--admin-text-muted);
+    --body-medium-color: var(--admin-text-medium);
+    --body-loud-color: #ffffff;
+
+    --header-color: var(--admin-text);
+    --header-branding-color: var(--admin-text);
+    --header-bg: var(--admin-bg);
+    --header-link-color: var(--admin-primary);
+
+    --breadcrumbs-fg: var(--admin-text-muted);
+    --breadcrumbs-link-fg: var(--admin-primary);
+    --breadcrumbs-bg: var(--admin-surface);
+
+    --link-fg: var(--admin-primary);
+    --link-hover-color: var(--admin-link-hover);
+    --link-selected-fg: var(--admin-link-selected);
+
+    --hairline-color: var(--admin-border);
+    --border-color: var(--admin-border);
+
+    --error-fg: var(--admin-danger);
+
+    --message-debug-bg: var(--admin-message-debug-bg);
+    --message-info-bg: var(--admin-message-info-bg);
+    --message-success-bg: var(--admin-message-success-bg);
+    --message-warning-bg: var(--admin-message-warning-bg);
+    --message-error-bg: var(--admin-message-error-bg);
+
+    --darkened-bg: var(--admin-surface);
+    --selected-bg: #2b3035;
+    --selected-row: var(--admin-message-warning-bg);
+
+    --button-fg: #121212;
+    --button-bg: var(--admin-primary);
+    --button-hover-bg: var(--admin-primary-hover);
+    --default-button-bg: var(--admin-primary);
+    --default-button-hover-bg: var(--admin-primary-hover);
+    --close-button-bg: #343a40;
+    --close-button-hover-bg: #6c757d;
+    --delete-button-bg: var(--admin-danger);
+    --delete-button-hover-bg: var(--admin-danger-hover);
+
+    --object-tools-fg: #121212;
+    --object-tools-bg: var(--admin-primary);
+    --object-tools-hover-bg: var(--admin-primary-hover);
+}
+
+/* ------------------------------------------------------------------------
+   Общие правила: цвета берутся из токенов и сами следуют за темой
+   ------------------------------------------------------------------------ */
 
 body {
     background-color: var(--body-bg);
@@ -95,14 +345,8 @@ body {
     text-decoration: underline;
 }
 
-/* Переключатель светлой/тёмной темы не нужен: палитра панели фиксирована
-   и совпадает с палитрой сайта. */
-.theme-toggle {
-    display: none;
-}
-
 /* ------------------------------------------------------------------------
-   Навигация: тёмная панель сайта + светлая служебная полоса админки
+   Навигация: тёмная панель сайта + служебная полоса админки
    ------------------------------------------------------------------------ */
 
 .admin-navbar {
@@ -121,16 +365,22 @@ body {
 #branding #site-name a {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--admin-dark);
+    color: var(--admin-text);
 }
 
 #user-tools {
     font-size: 0.875rem;
-    color: var(--admin-gray);
+    color: var(--admin-text-muted);
 }
 
 #user-tools a {
     border-bottom: none;
+}
+
+/* Кнопка переключения темы рядом с именем пользователя. */
+#user-tools .theme-toggle svg {
+    fill: var(--admin-primary);
+    color: var(--header-bg);
 }
 
 /* ------------------------------------------------------------------------
@@ -163,7 +413,7 @@ body {
 
 .module,
 #content .module {
-    background: #fff;
+    background: var(--admin-bg);
     border: 1px solid var(--admin-border);
     border-radius: 0.375rem;
     margin-bottom: 1.25rem;
@@ -173,8 +423,8 @@ body {
 .module caption,
 .inline-group h2,
 #content .module h2 {
-    background: var(--admin-light);
-    color: var(--admin-dark);
+    background: var(--admin-surface);
+    color: var(--admin-text);
     font-weight: 600;
     padding: 0.6rem 0.9rem;
     border-bottom: 1px solid var(--admin-border);
@@ -203,9 +453,9 @@ body {
 
 #changelist table thead th,
 .inline-group table thead th {
-    background-color: var(--admin-dark);
-    color: #fff;
-    border-color: #495057;
+    background-color: var(--admin-table-head-bg);
+    color: var(--admin-table-head-fg);
+    border-color: var(--admin-input-border);
     font-weight: 600;
 }
 
@@ -213,7 +463,7 @@ body {
 #changelist table thead th a:visited,
 .inline-group table thead th a:link,
 .inline-group table thead th a:visited {
-    color: #fff;
+    color: var(--admin-table-head-fg);
 }
 
 #changelist table thead th .sortoptions .sortpriority,
@@ -225,12 +475,12 @@ body {
 
 #changelist table tbody tr:nth-of-type(odd) > *,
 .inline-group table tbody tr:nth-of-type(odd) > * {
-    background-color: rgb(0 0 0 / 3%);
+    background-color: var(--admin-table-stripe);
 }
 
 #changelist table tbody tr:hover > *,
 .inline-group table tbody tr:hover > * {
-    background-color: rgb(13 110 253 / 8%);
+    background-color: var(--admin-row-hover);
 }
 
 #changelist table td,
@@ -266,7 +516,7 @@ a.button,
 input[type="submit"]:focus-visible,
 .object-tools a:focus-visible {
     outline: 0;
-    box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
+    box-shadow: 0 0 0 0.25rem var(--admin-focus-ring);
 }
 
 a.deletelink:link,
@@ -275,7 +525,7 @@ a.deletelink:visited {
 }
 
 .submit-row {
-    background: var(--admin-light);
+    background: var(--admin-surface);
     border: 1px solid var(--admin-border);
     border-radius: 0.375rem;
     padding: 0.75rem 1rem;
@@ -311,28 +561,28 @@ select,
     border-radius: 0.375rem;
     padding: 0.375rem 0.75rem;
     font-family: inherit;
-    color: var(--admin-dark);
-    background-color: #fff;
+    color: var(--admin-text);
+    background-color: var(--admin-bg);
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
+    border-color: var(--admin-focus-border);
+    box-shadow: 0 0 0 0.25rem var(--admin-focus-ring);
     outline: 0;
 }
 
 .form-row .help,
 .help {
-    color: var(--admin-gray);
+    color: var(--admin-text-muted);
     font-size: 0.8125rem;
 }
 
 .errornote,
 ul.errorlist li {
-    background: var(--message-error-bg);
-    color: #842029;
+    background: var(--admin-message-error-bg);
+    color: var(--admin-message-error-fg);
     border-radius: 0.375rem;
 }
 
@@ -348,28 +598,28 @@ ul.errorlist li {
 }
 
 .messagelist li.success {
-    background-color: var(--message-success-bg);
-    border-color: #badbcc;
-    color: #0f5132;
+    background-color: var(--admin-message-success-bg);
+    border-color: var(--admin-message-success-border);
+    color: var(--admin-message-success-fg);
 }
 
 .messagelist li.error {
-    background-color: var(--message-error-bg);
-    border-color: #f5c2c7;
-    color: #842029;
+    background-color: var(--admin-message-error-bg);
+    border-color: var(--admin-message-error-border);
+    color: var(--admin-message-error-fg);
 }
 
 .messagelist li.warning {
-    background-color: var(--message-warning-bg);
-    border-color: #ffecb5;
-    color: #664d03;
+    background-color: var(--admin-message-warning-bg);
+    border-color: var(--admin-message-warning-border);
+    color: var(--admin-message-warning-fg);
 }
 
 .messagelist li.info,
 .messagelist li.debug {
-    background-color: var(--message-info-bg);
-    border-color: #b6effb;
-    color: #055160;
+    background-color: var(--admin-message-info-bg);
+    border-color: var(--admin-message-info-border);
+    color: var(--admin-message-info-fg);
 }
 
 /* ------------------------------------------------------------------------
@@ -377,7 +627,7 @@ ul.errorlist li {
    ------------------------------------------------------------------------ */
 
 #nav-sidebar {
-    background: #fff;
+    background: var(--admin-bg);
     border-right: 1px solid var(--admin-border);
 }
 
@@ -390,11 +640,11 @@ ul.errorlist li {
 }
 
 body.login {
-    background: var(--admin-light);
+    background: var(--admin-surface);
 }
 
 body.login #container {
-    background: #fff;
+    background: var(--admin-bg);
     border: 1px solid var(--admin-border);
     border-radius: 0.5rem;
     box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 8%);

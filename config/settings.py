@@ -23,7 +23,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-qqlal!y)acqlarbr)5y9#96zy+by70jqa9rc2!gfiyyx*1w0q4"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+#
+# Учебный проект не выкладывается в продакшен, поэтому DEBUG включён:
+# runserver сам раздаёт файлы из static/ и STATICFILES_DIRS (CSS/JS админки,
+# Bootstrap, Tabulator) без collectstatic и без флага --insecure.
+DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
@@ -40,6 +44,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "shop.apps.ShopConfig",
     "api.apps.ApiConfig",
+    "admin_panel.apps.AdminPanelConfig",
 ]
 
 MIDDLEWARE = [

@@ -38,7 +38,7 @@ max_line_length = 120
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 pythonpath = ["."]
-testpaths = ["api", "shop"]
+testpaths = ["admin_panel", "api", "shop"]
 addopts = "-ra"
 
 [dependency-groups]
