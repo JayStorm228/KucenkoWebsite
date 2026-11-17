@@ -25,6 +25,34 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+### Статические файлы
+
+В проекте `DEBUG = False`, а в этом режиме `runserver` статику **не отдаёт**: страницы
+открываются с кодом 200, но любые `/static/...` отвечают 404, и сайт с админкой выглядят
+-unstyled. Это не связано с API: так же ведёт себя и Bootstrap, который витрина использует
+с самого начала. Два рабочих варианта:
+
+```bash
+# локально — отдавать статику силами runserver даже при DEBUG=False
+python manage.py runserver --insecure
+
+# для развёртывания — собрать статику в STATIC_ROOT и отдавать её веб-сервером
+python manage.py collectstatic        # -> staticfiles/ (каталог в .gitignore)
+```
+
+Копировать в папку `static/` проекта файлы админки (`admin/css/base.css`, `dark_mode.css`,
+`nav_sidebar.css`, `dashboard.css`, `responsive.css`, `admin/js/theme.js`,
+`admin/js/nav_sidebar.js`) **не нужно**: их отдаёт приложение `django.contrib.admin`
+через `AppDirectoriesFinder`, а `collectstatic` сам собирает их в `STATIC_ROOT` вместе с
+`static/css/admin_site.css`, Bootstrap и остальной статикой проекта. Из своих файлов
+админке нужны только два, и они в репозитории есть:
+
+| Файл | Где | Зачем |
+| --- | --- | --- |
+| `static/css/admin_site.css` | проект | палитра и вид панели в стиле сайта |
+| `static/css/bootstrap.min.css`, `static/js/bootstrap.bundle.min.js` | проект | навигационная панель и сетка Bootstrap |
+| `static/admin/**` | пакет `django.contrib.admin` | служебные стили и скрипты самой админки |
+
 ## API v1
 
 ### Маршруты и права доступа
