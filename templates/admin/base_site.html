@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+{% block title %}
+    {% if subtitle %}{{ subtitle }} |{% endif %}
+    {{ title }} | {{ site_title|default:"Администрирование магазина" }}
+{% endblock %}
+{# Оформление панели в стиле веб-приложения: подключаются Bootstrap и свои стили. #}
+{# Порядок важен: Bootstrap — в extrastyle, то есть до forms.css и changelists.css #}
+{# отдельных страниц админки, а admin_site.css — последним, в блоке responsive. #}
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+{% endblock %}
+{% block responsive %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/admin_site.css' %}">
+{% endblock %}
+{# Та же тёмная навигационная панель, что и на сайте (templates/base.html), #}
+{# а ниже — штатный заголовок админки с приветствием, ссылкой на сайт и выходом. #}
+{% block header %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark admin-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'home' %}">Магазин Куценко В.</a>
+            <button class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#adminNavbarNav"
+                    aria-controls="adminNavbarNav"
+                    aria-expanded="false"
+                    aria-label="Переключить навигацию">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="adminNavbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">Главная</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'shop:index' %}">Магазин / Курсы</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active"
+                           aria-current="page"
+                           href="{% url 'admin:index' %}">Администрирование</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {{ block.super }}
+{% endblock %}
+{% block branding %}
+    <div id="site-name">
+        <a href="{% url 'admin:index' %}">{{ site_header|default:"Администрирование" }}</a>
+    </div>
+{% endblock %}
+{% block footer %}
+    {{ block.super }}
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+{% endblock %}

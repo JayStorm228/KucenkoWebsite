@@ -22,6 +22,10 @@ select = [
     "UP",  # Возможности современного Python
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Миграции генерирует Django: длинные строки в них — норма.
+"*/migrations/*.py" = ["E501"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
@@ -30,6 +34,12 @@ indent-style = "space"
 profile = "django"
 indent = 4
 max_line_length = 120
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = ["."]
+testpaths = ["api", "shop"]
+addopts = "-ra"
 
 [dependency-groups]
 dev = [

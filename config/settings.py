@@ -37,7 +37,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
     "shop.apps.ShopConfig",
+    "api.apps.ApiConfig",
 ]
 
 MIDDLEWARE = [
@@ -122,6 +124,23 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+# Django REST Framework
+# https://www.django-rest-framework.org/api-guide/settings/
+#
+# API v1 доступно по адресу api/v1/. Чтение ресурсов публичное, запись —
+# по API-ключу приложения api (заголовок X-API-Key) со скоупом write/delete,
+# либо по сессии админки для сотрудников (is_staff).
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "api.authentication.ApiKeyAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "api.permissions.ApiKeyScopePermission",
+    ],
+}
 
 
 # Email

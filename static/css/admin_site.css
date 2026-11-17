@@ -1,0 +1,409 @@
+/*
+ * Оформление админ-панели в стиле веб-приложения «Магазин Куценко В.»
+ * (Bootstrap 5: тёмная навигация, таблицы с тёмной шапкой и полосами,
+ * кнопки и поля как btn-primary / form-control).
+ *
+ * Палитра админки Django задаётся CSS-переменными, поэтому большая часть
+ * переоформления — это переопределение переменных в :root. Значения совпадают
+ * с переменными Bootstrap 5.3 (--bs-primary, --bs-dark, --bs-border-color и т. д.).
+ *
+ * Файл подключается последним (см. templates/admin/base_site.html), поэтому его
+ * правила имеют приоритет над base.css, forms.css, changelists.css и responsive.css.
+ */
+
+:root {
+    /* Основные цвета Bootstrap */
+    --admin-blue: #0d6efd;
+    --admin-blue-hover: #0b5ed7;
+    --admin-dark: #212529;
+    --admin-gray: #6c757d;
+    --admin-light: #f8f9fa;
+    --admin-border: #dee2e6;
+    --admin-input-border: #ced4da;
+    --admin-danger: #dc3545;
+    --admin-danger-hover: #bb2d3b;
+
+    /* Палитра админки Django -> палитра Bootstrap */
+    --primary: var(--admin-blue);
+    --secondary: var(--admin-dark);
+    --accent: #ffc107;
+    --primary-fg: #fff;
+
+    --body-fg: var(--admin-dark);
+    --body-bg: #fff;
+    --body-quiet-color: var(--admin-gray);
+    --body-medium-color: #495057;
+    --body-loud-color: var(--admin-dark);
+
+    --header-color: var(--admin-dark);
+    --header-branding-color: var(--admin-dark);
+    --header-bg: #fff;
+    --header-link-color: var(--admin-blue);
+
+    --breadcrumbs-fg: var(--admin-gray);
+    --breadcrumbs-link-fg: var(--admin-blue);
+    --breadcrumbs-bg: var(--admin-light);
+
+    --link-fg: var(--admin-blue);
+    --link-hover-color: #0a58ca;
+    --link-selected-fg: var(--admin-dark);
+
+    --hairline-color: var(--admin-border);
+    --border-color: var(--admin-border);
+
+    --error-fg: var(--admin-danger);
+
+    --message-debug-bg: #e2e3e5;
+    --message-info-bg: #cff4fc;
+    --message-success-bg: #d1e7dd;
+    --message-warning-bg: #fff3cd;
+    --message-error-bg: #f8d7da;
+
+    --darkened-bg: var(--admin-light);
+    --selected-bg: #e9ecef;
+    --selected-row: #fff3cd;
+
+    --button-fg: #fff;
+    --button-bg: var(--admin-blue);
+    --button-hover-bg: var(--admin-blue-hover);
+    --default-button-bg: var(--admin-blue);
+    --default-button-hover-bg: var(--admin-blue-hover);
+    --close-button-bg: var(--admin-gray);
+    --close-button-hover-bg: #565e64;
+    --delete-button-bg: var(--admin-danger);
+    --delete-button-hover-bg: var(--admin-danger-hover);
+
+    --object-tools-fg: #fff;
+    --object-tools-bg: var(--admin-blue);
+    --object-tools-hover-bg: var(--admin-blue-hover);
+
+    --font-family-primary: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+        "Noto Sans", "Liberation Sans", Arial, sans-serif;
+}
+
+body {
+    background-color: var(--body-bg);
+    color: var(--body-fg);
+}
+
+/* Bootstrap подчёркивает все ссылки, в админке это лишнее. */
+#container a {
+    text-decoration: none;
+}
+
+#container a:hover {
+    text-decoration: underline;
+}
+
+/* Переключатель светлой/тёмной темы не нужен: палитра панели фиксирована
+   и совпадает с палитрой сайта. */
+.theme-toggle {
+    display: none;
+}
+
+/* ------------------------------------------------------------------------
+   Навигация: тёмная панель сайта + светлая служебная полоса админки
+   ------------------------------------------------------------------------ */
+
+.admin-navbar {
+    box-shadow: 0 0.125rem 0.25rem rgb(0 0 0 / 15%);
+}
+
+.admin-navbar .navbar-brand {
+    font-weight: 600;
+}
+
+#header {
+    padding: 0.5rem 1.5rem;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+#branding #site-name a {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--admin-dark);
+}
+
+#user-tools {
+    font-size: 0.875rem;
+    color: var(--admin-gray);
+}
+
+#user-tools a {
+    border-bottom: none;
+}
+
+/* ------------------------------------------------------------------------
+   Хлебные крошки
+   ------------------------------------------------------------------------ */
+
+.breadcrumbs {
+    padding: 0.6rem 1.5rem;
+    border-bottom: 1px solid var(--admin-border);
+    font-size: 0.875rem;
+}
+
+.breadcrumbs a {
+    color: var(--breadcrumbs-link-fg);
+}
+
+/* ------------------------------------------------------------------------
+   Контент: модули выглядят как карточки Bootstrap
+   ------------------------------------------------------------------------ */
+
+#content {
+    padding: 1.25rem 1.5rem;
+}
+
+#content h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.module,
+#content .module {
+    background: #fff;
+    border: 1px solid var(--admin-border);
+    border-radius: 0.375rem;
+    margin-bottom: 1.25rem;
+}
+
+.module h2,
+.module caption,
+.inline-group h2,
+#content .module h2 {
+    background: var(--admin-light);
+    color: var(--admin-dark);
+    font-weight: 600;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--admin-border);
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.module table {
+    border: none;
+}
+
+/* Список приложений на главной админки. */
+#content-main .module tr th,
+#content-main .module tr td {
+    padding: 0.6rem 0.9rem;
+}
+
+/* ------------------------------------------------------------------------
+   Таблицы: как на сайте (table-dark + table-striped + table-bordered)
+   ------------------------------------------------------------------------ */
+
+#changelist table,
+.inline-group table {
+    border: 1px solid var(--admin-border);
+    border-radius: 0.375rem;
+}
+
+#changelist table thead th,
+.inline-group table thead th {
+    background-color: var(--admin-dark);
+    color: #fff;
+    border-color: #495057;
+    font-weight: 600;
+}
+
+#changelist table thead th a:link,
+#changelist table thead th a:visited,
+.inline-group table thead th a:link,
+.inline-group table thead th a:visited {
+    color: #fff;
+}
+
+#changelist table thead th .sortoptions .sortpriority,
+#changelist table thead th .sortoptions .sortremove,
+#changelist table thead th .sortoptions .toggle.ascending,
+#changelist table thead th .sortoptions .toggle.descending {
+    filter: invert(1);
+}
+
+#changelist table tbody tr:nth-of-type(odd) > *,
+.inline-group table tbody tr:nth-of-type(odd) > * {
+    background-color: rgb(0 0 0 / 3%);
+}
+
+#changelist table tbody tr:hover > *,
+.inline-group table tbody tr:hover > * {
+    background-color: rgb(13 110 253 / 8%);
+}
+
+#changelist table td,
+#changelist table th,
+.inline-group table td,
+.inline-group table th {
+    border-top: 1px solid var(--admin-border);
+}
+
+#changelist table tbody tr.selected,
+#changelist tbody tr:has(.action-select:checked) {
+    background-color: var(--selected-row);
+}
+
+/* ------------------------------------------------------------------------
+   Кнопки и инструменты объекта — как btn-primary / btn-danger
+   ------------------------------------------------------------------------ */
+
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button,
+.button:link,
+.button:visited {
+    border-radius: 0.375rem;
+    padding: 0.45rem 0.9rem;
+    font-weight: 400;
+    border: 1px solid transparent;
+}
+
+.button:focus-visible,
+input[type="submit"]:focus-visible,
+.object-tools a:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
+}
+
+a.deletelink:link,
+a.deletelink:visited {
+    color: var(--admin-danger);
+}
+
+.submit-row {
+    background: var(--admin-light);
+    border: 1px solid var(--admin-border);
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+}
+
+.object-tools a {
+    border-radius: 0.375rem;
+    font-weight: 400;
+}
+
+/* ------------------------------------------------------------------------
+   Поля форм — как form-control / form-select
+   ------------------------------------------------------------------------ */
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+input[type="tel"],
+input[type="date"],
+input[type="time"],
+input[type="search"],
+textarea,
+select,
+.vTextField,
+.vLargeTextField,
+.vURLField,
+.vForeignKeyRawIdAdminField,
+.vDateField,
+.vTimeField {
+    border: 1px solid var(--admin-input-border);
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-family: inherit;
+    color: var(--admin-dark);
+    background-color: #fff;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
+    outline: 0;
+}
+
+.form-row .help,
+.help {
+    color: var(--admin-gray);
+    font-size: 0.8125rem;
+}
+
+.errornote,
+ul.errorlist li {
+    background: var(--message-error-bg);
+    color: #842029;
+    border-radius: 0.375rem;
+}
+
+/* ------------------------------------------------------------------------
+   Сообщения — как alert-блоки Bootstrap
+   ------------------------------------------------------------------------ */
+
+.messagelist li {
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    padding: 0.75rem 1.25rem 0.75rem 3rem;
+    margin-bottom: 1rem;
+}
+
+.messagelist li.success {
+    background-color: var(--message-success-bg);
+    border-color: #badbcc;
+    color: #0f5132;
+}
+
+.messagelist li.error {
+    background-color: var(--message-error-bg);
+    border-color: #f5c2c7;
+    color: #842029;
+}
+
+.messagelist li.warning {
+    background-color: var(--message-warning-bg);
+    border-color: #ffecb5;
+    color: #664d03;
+}
+
+.messagelist li.info,
+.messagelist li.debug {
+    background-color: var(--message-info-bg);
+    border-color: #b6effb;
+    color: #055160;
+}
+
+/* ------------------------------------------------------------------------
+   Боковая навигация и страница входа
+   ------------------------------------------------------------------------ */
+
+#nav-sidebar {
+    background: #fff;
+    border-right: 1px solid var(--admin-border);
+}
+
+#nav-sidebar .current-model {
+    background: var(--selected-bg);
+}
+
+#nav-sidebar a:hover {
+    color: var(--link-hover-color);
+}
+
+body.login {
+    background: var(--admin-light);
+}
+
+body.login #container {
+    background: #fff;
+    border: 1px solid var(--admin-border);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 8%);
+    padding: 1.5rem;
+    margin-top: 3rem;
+}
+
+body.login .submit-row {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
